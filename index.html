@@ -1,0 +1,53 @@
+<!DOCTYPE html><html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Reportes</title>
+</head>
+<body><h1>Enviar reporte</h1><input id="usuario" placeholder="Usuario reportado"><br><br>
+
+<select id="gravedad">
+    <option>Baja</option>
+    <option>Media</option>
+    <option>Alta</option>
+    <option>Crítica</option>
+</select><br><br><textarea id="motivo" placeholder="Describe el problema"></textarea><br><br><button onclick="enviarReporte()">Enviar</button>
+
+<script>
+async function enviarReporte() {
+
+    const webhook = "PEGA_AQUÍ_TU_WEBHOOK";
+
+    const usuario = document.getElementById("usuario").value;
+    const gravedad = document.getElementById("gravedad").value;
+    const motivo = document.getElementById("motivo").value;
+
+    await fetch(webhook, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            embeds: [{
+                title: "Nuevo reporte",
+                fields: [
+                    {
+                        name: "Usuario reportado",
+                        value: usuario
+                    },
+                    {
+                        name: "Gravedad",
+                        value: gravedad
+                    },
+                    {
+                        name: "Motivo",
+                        value: motivo
+                    }
+                ]
+            }]
+        })
+    });
+
+    alert("Reporte enviado");
+}
+</script></body>
+</html>
