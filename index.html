@@ -1,53 +1,120 @@
-        <!DOCTYPE html><html lang="es">
-<head>
-<meta charset="UTF-8">
-<title>Reportes</title>
-</head>
-<body><h1>Enviar reporte</h1><input id="usuario" placeholder="Usuario reportado"><br><br>
 
-<select id="gravedad">
-    <option>Baja</option>
-    <option>Media</option>
-    <option>Alta</option>
-    <option>Crítica</option>
-</select><br><br><textarea id="motivo" placeholder="Describe el problema"></textarea><br><br><button onclick="enviarReporte()">Enviar</button>
+        document.addEventListener('DOMContentLoaded', () => {
+            const form = document.getElementById('report-form');
+            const titleInput = document.getElementById('title');
+            const reportTextarea = document.getElementById('report-text');
+            const statusMessage = document.getElementById('status-message');
+            const themeToggleBtn = document.getElementById('theme-toggle');
+            const sunIcon = document.getElementById('sun-icon');
+            const moonIcon = document.getElementById('moon-icon');
 
-<script>
-async function enviarReporte() {
+            // Webhook URL proporcionada por el usuario
+            const webhookUrl = 'https://discord.com/api/webhooks/1519323860758167572/Ee91JtKer4S3fx--jS2tD-zf8FulBB80I6czP2P8swcS-2_7wm2YUM1OY-HbW1Nzsk1D';
 
-    const webhook = "https://discord.com/api/webhooks/1519323860758167572/Ee91JtKer4S3fx--jS2tD-zf8FulBB80I6czP2P8swcS-2_7wm2YUM1OY-HbW1Nzsk1D";
+            // ID del rol de Staff
+            const staffRoleId = '1357828715744333914';
 
-    const usuario = document.getElementById("usuario").value;
-    const gravedad = document.getElementById("gravedad").value;
-    const motivo = document.getElementById("motivo").value;
+            // Función para alternar el modo oscuro
+            function toggleDarkMode() {
+                const htmlElement = document.documentElement;
+                htmlElement.classList.toggle('dark');
+                
+                // Guardar la preferencia en localStorage
+                if (htmlElement.classList.contains('dark')) {
+                    localStorage.setItem('theme', 'dark');
+                    sunIcon.classList.remove('hidden');
+                    moonIcon.classList.add('hidden');
+                } else {
+                    localStorage.setItem('theme', 'light');
+                    sunIcon.classList.add('hidden');
+                    moonIcon.classList.remove('hidden');
+                }
+            }
 
-    await fetch(webhook, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-            embeds: [{
-                title: "Nuevo reporte",
-                fields: [
-                    {
-                        name: "Usuario reportado",
-                        value: usuario
-                    },
-                    {
-                        name: "Gravedad",
-                        value: gravedad
-                    },
-                    {
-                        name: "Motivo",
-                        value: motivo
+            // Comprobar la preferencia del usuario al cargar la página
+            if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+                sunIcon.classList.remove('hidden');
+                moonIcon.classList.add('hidden');
+            } else {
+                sunIcon.classList.add('hidden');
+                moonIcon.classList.remove('hidden');
+            }
+
+            // Event listener para el botón de alternar tema
+            themeToggleBtn.addEventListener('click', toggleDarkMode);
+
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                statusMessage.classList.add('hidden'); // Ocultar mensaje anterior
+
+                const title = titleInput.value.trim();
+                const reportContent = reportTextarea.value.trim();
+                const importance = document.querySelector('input[name="importance"]:checked').value;
+
+                // Validación simple para asegurar que los campos no están vacíos
+                if (!title || !reportContent) {
+                    statusMessage.textContent = 'Por favor, completa tanto el título como el contenido del reporte.';
+                    statusMessage.className = 'mt-6 text-center text-sm font-medium text-red-500 block';
+                    return;
+                }
+
+                let color;
+                let importanceText;
+                let content = '';
+
+                switch (importance) {
+                    case 'low':
+                        color = 5763719; // Verde
+                        importanceText = 'Sin mucha importancia';
+                        break;
+                    case 'medium':
+                        color = 16776960; // Amarillo
+                        importanceText = 'Media importancia';
+                        break;
+                    case 'high':
+                        color = 15548997; // Rojo
+                        importanceText = 'Urgencia';
+                        content = `<@&${staffRoleId}>`; // Mencionar al rol de Staff
+                        break;
+                }
+
+                // Construir el payload del webhook
+                const payload = {
+                    content: content,
+                    embeds: [{
+                        title: title,
+                        description: reportContent,
+                        color: color,
+                        footer: {
+                            text: `Importancia: ${importanceText}`
+                        },
+                        timestamp: new Date().toISOString(), // Añadir la hora de envío
+                    }]
+                };
+
+                try {
+                    const response = await fetch(webhookUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(payload),
+                    });
+
+                    if (response.ok) {
+                        statusMessage.textContent = 'Reporte enviado con éxito.';
+                        statusMessage.className = 'mt-6 text-center text-sm font-medium text-green-500 block';
+                        form.reset(); // Limpiar el formulario
+                    } else {
+                        statusMessage.textContent = `Error al enviar el reporte: ${response.statusText}`;
+                        statusMessage.className = 'mt-6 text-center text-sm font-medium text-red-500 block';
                     }
-                ]
-            }]
-        })
-    });
-
-    alert("Reporte enviado");
-}
-</script></body>
-</html>
+                } catch (error) {
+                    statusMessage.textContent = 'Hubo un problema de red. Asegúrate de que la URL del webhook es correcta.';
+                    statusMessage.className = 'mt-6 text-center text-sm font-medium text-red-500 block';
+                    console.error('Error:', error);
+                }
+            });
+        });
+    
